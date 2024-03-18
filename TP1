@@ -1,0 +1,186 @@
+EXO1
+1)
+select H.Codeh, H.Typeh, H.Ville,C.Nom, C.Profession
+From (LOCATION L join HABITATION H on L.Codeh=H.Codeh) join CLIENT C on C.Nom= L.Nom
+ ;
+
+2)
+select H.Codeh, H.Typeh, H.Ville,C.Nom, C.Profession
+From (LOCATION L right join HABITATION H on L.Codeh=H.Codeh) left join CLIENT C on C.Nom= L.Nom ;
+
+3)
+select H.Ville, H.Typeh, max(H.LoyerM) as loyerMax, min(H.LoyerM) as loyerMIn, avg(H.LoyerM) as moyenLoyer
+From HABITATION H
+Group by H.ville ,H.Typeh
+
+4)
+select  H.Typeh,count(distinct H.Codeh )
+from HABITATION H join LOCATION L on H.Codeh=L.Codeh
+Group by H.Typeh
+
+5)
+select  H.Typeh,count(distinct H.Codeh )
+from HABITATION H join LOCATION L on H.Codeh=L.Codeh
+Group by H.Typeh
+having count(distinct H.Codeh)>=3;
+
+6)
+select H.Codeh, H.Typeh, isnull(SUM(L.NombMois),0) as Nombre_de_mois
+from HABITATION H left join LOCATION L on H.Codeh=L.Codeh
+Group by H.Codeh,H.Typeh
+
+7)
+select Nom ,  SUM(L.NombMois*H.LoyerM) as Frais_totaux ,L.NombMois ,H.LoyerM
+from  LOCATION L  join HABITATION H on H.Codeh=L.Codeh
+group by Nom,L.NombMois,H.LoyerM
+
+8)
+/* not in */
+select C.Nom as Non_locataire
+from Client C
+where Nom not in (select nom from LOCATION)
+
+9)
+/* in , intersect , exists*/
+select nom
+from location l join habitation h on h.codeh=l.codeh
+where typeh='TYPE3'
+and
+nom in (select nom from location l join habitation h on h.codeh=l.codeh where typeh='TYPE1') ;
+
+
+select nom
+from location l join habitation h on l.codeh=h.codeh
+where h.typeh='TYPE1'
+intersect
+select nom
+from location l join habitation h on l.codeh=h.codeh
+where h.typeh='TYPE3' ;
+
+select nom
+from  location Lo
+where exists (select typeh from location l join habitation h on h.codeh=l.codeh
+where typeh='VILLA' and Lo.nom=l.nom)
+and not exists (select typeh from location l join habitation h on h.codeh=l.codeh
+where typeh!='VILLA' and Lo.nom=l.nom) ;
+
+10)
+select Nom, FraisTotaux
+from ( select l.Nom, sum(NombMois*LoyerM) AS FraisTotaux
+		from habitation h join location l on h.Codeh = l.CodeH
+		group by l.Nom ) L
+where FraisTotaux >= any
+		(select max(FraisTotaux)
+		from ( select l.Nom, sum(NombMois*LoyerM) AS FraisTotaux
+		from habitation h join location l on h.Codeh = l.CodeH
+		group by l.Nom )L)
+		;
+11)
+select *
+from ((select nom from  client  where profession='Cadre') union all (select nom from location l join habitation h on l.codeh=h.codeh where h.typeh='VILLA')) V;
+
+
+12)
+select *
+from ((select nom from  client  where profession='Cadre') union  (select nom from location l join habitation h on l.codeh=h.codeh where h.typeh='VILLA')) V;
+
+
+EXO2
+
+ select * into client2 from client;
+ select * into location2 from location;
+ select * into habitation2 from habitation;
+
+ update habitation2
+ set loyerM = 2*loyerM
+ where typeh in ('VILLA','TYPE5');
+
+delete from location2
+where exists ( select * from habitation h join location l on h.codeh=l.codeh where ville='MARSEILLE');
+
+drop table client2;
+drop table habitation2;
+drop table location2;
+
+
+EXO3
+
+create database Commandes_SOAVINIAVO
+go
+use Commandes_SOAVINIAVO
+
+create table client (
+Nocli int primary key,
+CtotMon smallmoney ,
+NbCom int
+)
+
+create table produit (
+Noprod int primary key,
+Pxunit smallmoney,
+Qtestk int ,
+check (Qtestk>0)
+)
+
+create table commande(
+Nocom int primary key,
+Montcom smallmoney,
+Nocli int
+)
+
+create table ligne(
+Nocom int,
+Nordre int,
+primary key(Nocom ,Nordre),
+Qtecom int,
+Noprod int,
+Puacc smallmoney,
+Montligne as puacc* qtecom
+)
+
+// delete cascade
+alter table commande
+add constraint fkcli foreign key(Nocli) references Client(Nocli) on  delete cascade ;
+
+alter table ligne
+add constraint fknom foreign key(Nocom) references Commande(Nocom) on  delete cascade ;
+
+alter table ligne
+add constraint fkprod foreign key(Noprod) references Produit(Noprod) on  delete cascade ;
+
+// update on cascade
+alter table commande
+add constraint upp foreign key(Nocli) references Client(Nocli) on  update cascade ;
+
+alter table ligne
+add constraint up foreign key(Nocom) references Commande(Nocom) on  update cascade;
+
+alter table ligne
+add constraint upd foreign key(Noprod) references Produit(Noprod) on  update cascade ;
+
+
+// insertion
+insert into client values( 1,30,2);
+insert into client values( 2,40,3);
+insert into client values( 4,50,4);
+insert into client values (5,23,8);
+
+insert into produit values(1,5,3);
+insert into produit values(2,4,4);
+insert into produit values(3,3,5);
+
+insert into commande values(1,23,1);
+insert into commande values(2,5,2);
+insert into commande values(3,13,4);
+
+insert into ligne values(1,1,56,2,112);
+insert into ligne values(2,3,10,3,90);
+
+// test update / delete
+delete from client where nocli=1;
+select * from commande;
+
+update  client
+set noCli=8
+where nocli=2 ;
+

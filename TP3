@@ -1,0 +1,153 @@
+Exercice 1 :
+
+
+1-
+Create procedure  pr_getprix (@numprod int ,@prix_prod smallmoney output)
+As
+select @prix_prod=pxunit from produit where noprod=@numprod
+go
+declare @price smallmoney
+execute  pr_getprix 3 , @price output
+select @price prix
+
+
+2-
+Create proc get_quantite(@numprod int , @quantite_total int output)
+as
+Select @quantite_total=sum(qtecom) from ligne where noprod=@numprod
+go
+declare @quantite int
+execute get_quantite 1 , @quantite output
+select @quantite Total
+
+3-
+create proc pr_changeprix(@numprod int ,@newPrice int)
+as
+update produit
+set pxunit= @newPrice
+where noprod= @numprod
+go
+execute pr_changeprix 4 , 40
+
+
+4-
+create proc affiche( @val char(20) ="nomena")
+as
+if @val is not  null
+print @val
+else
+print ('paramètre manquante')
+
+
+5-
+
+create proc pr_insert_ligne (@nocom int , @nordre int ,@qtecom int , @noprod int ,@pourcentage int)
+as
+declare @prix int
+execute pr_getprix @noprod , @prix output
+declare @val float
+set @val = @prix -((@prix*@pourcentage)/100)
+insert into ligne values(@nocom , @nordre, @qtecom, @noprod , @val)
+go
+
+
+6-
+
+create proc pr_insert_lignee (@nocom int ,@nordre int, @qtecom int , @noprod int ,@pourcentage int)
+as
+declare @val float
+declare @prix int
+set @val = @prix -((@prix*@pourcentage)/100)
+execute pr_getprix @noprod , @prix output
+declare @max int
+set @max= (select max(nordre) from ligne where  nocom = @nocom)
+
+if exists(Select   * from ligne where nocom=@nocom and nordre= @nordre)
+begin
+ insert into ligne values(@nocom , @max+1, @qtecom, @noprod , @val)
+ end
+ else
+ begin
+  insert into ligne values(@nocom , @nordre, @qtecom, @noprod , @val)
+  end
+
+
+
+7-
+a)
+Create procedure  pr_getprix1 (@numprod int ,@prix_prod smallmoney output)
+As
+select @prix_prod = pxunit from produit where noprod=@numprod
+if @prix_prod is not null
+select @prix_prod Prix
+else
+raiserror('Prix non trouvé',16,1)
+go
+
+b)
+create proc pr_insert_ligne1 (@nocom int ,@nordre int, @qtecom int , @noprod int ,@pourcentage int)
+as
+declare @val float
+declare @prix int
+set @val = @prix -((@prix*@pourcentage)/100)
+execute pr_getprix @noprod , @prix output
+declare @max int
+set @max= (select max(nordre) from ligne where  nocom = @nocom)
+
+if @@ROWCOUNT=0
+begin
+if exists(Select   * from ligne where nocom=@nocom and nordre= @nordre)
+ insert into ligne values(@nocom , @max+1, @qtecom, @noprod , @val)
+
+ else
+  insert into ligne values(@nocom , @nordre, @qtecom, @noprod , @val)
+end
+else
+raiserror('La ligne ne peut pas être ajouté',16,1)
+
+
+8-
+
+create proc quantite_moyenne (@noprod int )
+as
+declare @val int
+declare @line int
+declare @quantite float
+select @val= sum(qtecom), @line=count(distinct(nocom)) from ligne where noprod=@noprod
+set @quantite= cast(@val as float) / @line
+select @val ,@line
+select @quantite Prix_moyenne
+go
+
+execute quantite_moyenne 1
+select * from ligne
+
+9-
+create proc quantite_moyenne1 (@noprod int= null ) as
+if @noprod is not null
+execute quantite_moyenne @noprod
+else
+select  noprod as Noprod ,cast(sum(qtecom) as float)/count(distinct(nocom)) as moyenne ,count(distinct(nocom)) as NombCom from ligne
+group by noprod
+go
+execute quantite_moyenne1
+drop proc quantite_moyenne1
+
+
+Exercice 2
+
+
+create proc pr_insertloc (@codeh int, @nom varchar(20), @nombM int, @villeRes varchar(20)=null, @profession varchar(20)=null) as
+if exists( select * from client  where Nom =@nom)
+insert into location values(@codeh, @nom,@nombM)
+else
+begin
+if @villeRes is null and @profession is null
+raiserror('La profession et la ville de résidence du client sont manquantes',16,1)
+else
+insert into client values (@nom,@villeRes,@profession)
+insert into location values (@codeh, @nom, @nombM)
+end
+go
+execute pr_insertloc 1 ,'Martin' ,4 ,'Nice','Docteur'
+

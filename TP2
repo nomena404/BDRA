@@ -1,0 +1,305 @@
+
+-----Partie A----
+EXO1
+a)
+1-
+create view HabitationsAbordables1
+as select Codeh ,Typeh,Adresse, Ville, loyerM
+from habitation
+where loyerM<=900
+
+2-
+create view HabitationsAbordables2
+as select Codeh ,Typeh,Adresse, Ville, loyerM
+from habitation
+where loyerM<=900
+with check option;
+
+
+
+insert into  HabitationsAbordables1  values(001,'TYPE2','Av. de Larciano 12','Rousset',1200)
+insert into  HabitationsAbordables1  values(003,'TYPE2','Av. de Larciano 11','Rousset',1300)
+insert into  HabitationsAbordables2  values(002,'TYPE2','Av. de Larciano 12','Rousset',1200)
+
+update  HabitationsAbordables1
+set loyerM=1000
+where Codeh=001;
+
+update  HabitationsAbordables2
+set loyerM=1000
+where Typeh='VILLA';
+
+
+delete from HABITATION where ville='Rousset'
+
+/* Le premier cas avec check option on ne pouvait pas faire les mise à jour
+si on essaie de faire une insertion avec loyer >900 ni un update , par contre sans l'option
+on pouvait faire des modifications , et en regardant dans la table Habitation
+on aperçois que la ligne est aussi ajouter dedans
+*/
+
+
+b)
+create view HabitationSynth (IdeHab, Typeh, Locataire , AdressePerm, Duree)
+as select h.codeh,h.typeh, l.nom,VilleResid,nombMois
+from (habitation h join location l on h.codeh= l.codeh) join client c on c.nom=l.nom
+
+select * from HabitationSynth
+
+1-
+select IdeHab,Typeh ,locataire
+from HabitationSynth
+where adressePerm='Grenoble'
+
+2-
+/*
+Je ne pourrais pas faire de mise à jour avec cette vue car elle est
+construite à partir de 3 tables différentes donc sa modification infecterait les
+3 autres tables donc ça va casser la base de donnée.
+*/
+
+
+EXO2
+
+a)
+select *
+from produit
+where poids>14 and couleur='vert'
+
+b)
+select numprod, poids+5
+from produit
+where poids>14
+
+c)
+update produit
+set couleur='blanc'
+where poids=18
+
+d)
+delete from produit
+where false
+
+e)
+insert into produit values('P99', 12, 'pourpre',null,null)
+
+EXO3
+
+
+question 1:
+a)
+select nocli ,sum(qtecom) as quantité_commande ,noprod into #Total_Produit
+from  commande com  join ligne l on l.nocom=com.nocom
+group by nocli , noprod
+
+drop table #Total_Produit
+select * from #Total_Produit
+b)
+
+select nocli
+from #Total_Produit
+where  quantité_commande=(select max(quantité_commande) from #Total_Produit where noprod=1 )
+
+declare @max int;
+select @max=  max(quantité_commande) from #Total_Produit   where  noprod=1
+select @max
+
+question 2:
+
+declare @exe table (
+Nocli varchar(20) ,
+Noprod int ,
+Qtecom int
+)
+
+insert into @exe
+select nocli , noprod ,sum(qtecom ) as quantité
+from commande com join ligne l on com.nocom=l.nocom
+group by nocli, noprod ,qtecom
+
+declare @max int ;
+select @max = max(qtecom) from @exe where noprod=1;
+
+select nocli from @exe where qtecom=@max;z
+
+
+question 3:
+
+With PRODUIT_MAX as ( select nocli ,noprod , sum(qtecom) as quantité_totale
+from commande c join ligne l on c.nocom=l.nocom group by nocli , noprod )
+select nocli from PRODUIT_MAX where quantité_totale = (select max(quantité_totale)
+from PRODUIT_MAX  where Noprod=1)
+
+question 4 :
+
+/*La différence d'utilisation des 3 se diffèrent selon leur portée ou leur durée de vie
+La variable de table n'existe que durant l'éxécution
+La table temporaire n'existe que durant la session
+Le CTE n'existe que dans la sous- requête qui l'utilise
+*/
+
+-----Partie B------
+
+EXO4
+question 1 :
+
+declare @valeur smallmoney
+set @valeur= (select pxunit from produit where noprod =7)
+if @valeur <=100 print 'Le prix est inférieur à 100 euros'
+else print 'Le prix est supérieur à 100 euros'
+
+question 2 :
+
+Create table T1(
+i int  identity(0,1),
+datecur datetime)
+
+select * from t1
+declare @current date = CURRENT_TIMESTAMP
+declare @compteur int =0
+
+while @compteur<100
+begin
+insert into t1(datecur) values(@current)
+set @compteur=@compteur +1
+end;
+
+select * from t1
+
+
+Exo5
+question 1
+
+declare @numPro int
+declare @prix smallmoney
+
+declare curserProduit cursor for
+select noprod , pxunit from produit
+
+open curserProduit
+fetch next from curserProduit into @numPro , @prix
+while @@FETCH_STATUS =0
+begin
+ if @prix < 20
+ print  cast(@numPro as varchar(10))  + ' PAS CHER'
+ else print cast(@numPro as varchar(10))  + '  CHER'
+ end
+ fetch next from curserProduit into @numPro , @prix
+
+close  curserProduit
+deallocate curserProduit
+
+question 2:
+
+1-
+declare @quantite int
+set @quantite= (select qtecom from ligne where noprod =3)
+if @quantite <10
+update ligne
+set Qtecom =Qtecom + 50
+
+else
+update ligne
+set qtecom=Qtecom  -5
+
+--la requete n'est pas juste----
+
+2-
+
+
+update ligne
+set qtecom=
+case
+when Qtecom<10 and noprod = 3 then  Qtecom+50
+when qtecom >= 10 and noprod =3 then Qtecom-5
+else qtecom
+
+3-
+declare @quantite2 int
+declare curseurLigne cursor for
+select qtecom from ligne where noprod=3
+
+open curseurLigne
+ fetch next from  curseurLigne into @quantite2
+ while @@FETCH_STATUS=0
+ begin
+ if @quantite2 <10
+    update ligne
+    set qtecom= @quantite2 + 50
+
+ else
+    update ligne
+    set qtecom= @quantite2 - 5
+ end
+
+ fetch next from  curseurLigne into @quantite2
+
+ close curseurLigne
+ deallocate curseurLigne
+
+
+ Exo6
+
+ 1-
+
+ with tableRecursive as
+ (select composante , Sous_composante  from COMPOSITION
+ union all
+ select T.Composante, c.sous_composante from tableRecursive T
+ join  composition c on t.sous_Composante=c.Composante
+ where t.sous_Composante is not null)
+
+ select type_comp , sous_composante from
+ tableRecursive T join TYPE_COMPOSANTES ty on T.sous_composante= ty.composante
+where t.composante='x102'
+
+2-
+ with tableRecursive as
+ (select composante , Sous_composante  from COMPOSITION
+ union all
+ select T.Composante, c.Sous_composante
+ from tableRecursive T
+ join  COMPOSITION C on T.Sous_Composante=C.Composante
+ where T.Sous_composante is not null)
+
+ select  type_comp , Sous_composante from
+ tableRecursive T join TYPE_COMPOSANTES ty on T.Sous_composante= ty.composante
+where  T.composante='x102' and type_comp='Mini_Circuit'
+
+3-
+ with tableRecursive as
+ (select composante , Sous_composante  from COMPOSITION
+ union all
+ select T.Composante, C.sous_composante
+ from tableRecursive T
+ join  composition C on T.Sous_composante=C.Composante
+ where T.Sous_composante is not null)
+
+ select   T.Composante, type_comp from
+ tableRecursive T join TYPE_COMPOSANTES ty on T.composante= ty.composante
+where  t.Sous_composante='uu700'
+
+
+ 4-
+
+  with tableRecursive as
+ (select composante , Sous_composante  from COMPOSITION
+ union all
+ select T.Composante, C.sous_composante
+ from tableRecursive T
+ join  composition C on T.Sous_composante=C.Composante
+ where T.Sous_composante is not null)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
